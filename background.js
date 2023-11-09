@@ -71,36 +71,36 @@ async function saveCookies(cookies, storeId) {
   }
 }
 
-async function getCookies(stores_filter) {
-  for (var store of stores_filter.stores) {
-    try {
-      query = (browser.runtime.getBrowserInfo().version >= "59.0")?
-        { ...stores_filter.filter,
-          ...{ storeId: store.id, firstPartyDomain: null }
-        }
-      : { ...stores_filter.filter,
-          ...{ storeId: store.id }
-        };
+async function getCookies(storeId, filter) {
+  try {
+    query = (browser.runtime.getBrowserInfo().version >= "59.0")?
+      { ...filter,
+        ...{ firstPartyDomain: null }
+      }
+    : filter;
 
-      cookies = await browser.cookies.getAll(query);
-      await saveCookies(cookies, store.id);
-    } catch(e) {
-      /* Returning a promise when no function is specified has not been implemented:
-       * https://developer.chrome.com/docs/extensions/reference/cookies/#method-getAll */
-      cookies = await browser.cookies.getAll(
-        { ...stores_filter.filter,
-          ...{ storeId: store.id }
-        },
-        cookies => saveCookies(cookies, store.id)
-      );
-    }
+    cookies = await browser.cookies.getAll(query);
+    await saveCookies(cookies, storeId);
+  } catch(e) {
+    /* Returning a promise when no function is specified has not been implemented:
+      * https://developer.chrome.com/docs/extensions/reference/cookies/#method-getAll */
+    cookies = await browser.cookies.getAll(
+      filter,
+      cookies => saveCookies(cookies, storeId)
+    );
   }
 }
 
 function handleClick(filter = {}) {
-  browser.cookies.getAllCookieStores(stores =>
-      getCookies({stores: stores, filter: filter})
-    );
+  if ('storeId' in filter) {
+    getCookies(filter.storeId, filter)
+  } else {
+    browser.cookies.getAllCookieStores(stores => {
+      for (var store of stores) {
+        getCookies(store.id, {...filter, ...{ storeId: store.id }})
+      }
+    });
+  }
 }
 
 browser.runtime.onMessage.addListener(handleClick)

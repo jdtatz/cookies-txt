@@ -13,7 +13,11 @@ document.querySelector(".current").addEventListener("click", () => {
     :  {active: true, currentWindow: true};
   browser.tabs.query(query, tabs => {
         if (tabs.length > 0) {
-          browser.runtime.sendMessage({url: tabs[0].url});
+          if ('cookieStoreId' in tabs[0]) {
+            browser.runtime.sendMessage({url: tabs[0].url, storeId: tabs[0].cookieStoreId});
+          } else {
+            browser.runtime.sendMessage({url: tabs[0].url});
+          }
         }
       });
   window.close();
